@@ -7,6 +7,9 @@ imageLoad = image.load()
 
 class Region:
 
+	#def getColorDominance(color):
+		
+
 	def getRegionPixelList(self):
 		centerX = self.pixLocation[0]
 		centerY = self.pixLocation[1]
@@ -16,8 +19,9 @@ class Region:
 		if self.pixRadius == 0:
 			pixelList.append(self.imageLoaded[centerX, centerY])
 		else:
-			for x in range(centerX - self.pixRadius, centerX + self.pixRadius):
-				for y in range(centerY - self.pixRadius, centerY + self.pixRadius):
+			for x in range(centerX - self.pixRadius, centerX + self.pixRadius + 1):
+				for y in range(centerY - self.pixRadius, centerY + self.pixRadius + 1):
+					#print('[[ %d , %d ]]' % (x, y))
 					pixelList.append(self.imageLoaded[x, y])
 		
 		return pixelList
