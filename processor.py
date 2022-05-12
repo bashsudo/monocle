@@ -18,17 +18,39 @@ def imageBoundsCheckRadius(image, x, y, radius):
 	return (x - radius >= 0 and y - radius >= 0) and (x < size[0] - radius and y < size[1] - radius)
 
 
+def redBackgroundCheck(color):
+	other = 30
+	color = (0, other, other)
+	
+	maxNonRedVal = max(color[1], color[2])
+	
+	diffBright = 200
+	diffThresh = int(diffBright * (maxNonRedVal / 255))
+	
+	color = (maxNonRedVal + diffThresh, color[1], color[2])
+	
+	print('maxVal %d' % maxNonRedVal)
+	print('color %s' % str(color))
+	print('diffB %s' % str(diffThresh))
+	
+	im = Image.new("RGB", (512, 512), "white")
+	im.show()
+
+
 class RegionChunk:
 	
 	# you give the exact number of Regions in both the vertical and horizontal direction
 	# "posByCorner" = the start X/Y is actually the top left CORNER of a Region instead of the CENTER
-	def chunkDefineExact(self, startX, startY, jumpX, jumpY, regionNumX, regionNumY, regionRadius, posByCorner=False, jumpByRadius=False):
-		navX = startX
-		navY = startY
+	# startPos: tuple (x,y)
+	# jump: tuple (x,y)
+	# regionNum: tuple (x,y)
+	def chunkDefineExact(self, startPos, jump, regionNum, regionRadius, posByCorner=False, jumpByRadius=False):
+		self.regionList = []
+		navX = startPos[0]
+		navY = startPos[1]
 		
 		if(jumpByRadius):
-			jumpX = regionRadius
-			jumpY = regionRadius
+			jump = (regionRadius, regionRadius)
 		
 		if(posByCorner):
 			navX += regionRadius
@@ -37,21 +59,43 @@ class RegionChunk:
 		if not imageBoundsCheckRadius(self.imageObject, navX, navY, regionRadius):
 			return False
 		
-		for vert in range(regionNumY):
-			for horz in range(regionNumX):
+		for vert in range(regionNum[1]):
+			for horz in range(regionNum[0]):
 				self.regionList.append(Region(self.imageObject, self.imageLoaded, (navX, navY), regionRadius))
 				
-				navX += jumpX
+				navX += jump[0]
 			
-			navY += jumpY
-			navX -= jumpX * (regionNumX)
+			navY += jump[1]
+			navX -= jump[0] * (regionNum[0])
 		
 		return True
 		
 	# you give a number of pixels; it will try to pack as many Regions as it can depending on their radius
 	# considered to be more "lazy"
-	def chunkDefinePack(self):
-		pass
+	# "useMax" will choose the maximium calculated radius, instaed of minimum
+	def chunkDefinePack(self, topLeftCorner, bottomRightCorner, regionNum, useMax=False):
+		self.regionList = []
+		
+		width = bottomRightCorner[0] - topLeftCorner[0]
+		height = bottomRightCorner[1] - topLeftCorner[1]
+		
+		radiusCalc = (int(width / regionNum[0]), int(height / regionNum[1]))
+		radius = 0
+		
+		if(useMax):
+			radius = max(radiusCalc)
+		else:
+			radius = min(radiusCalc)
+		
+		# regions cannot have arbitrary widths or lengths, they MUST conform to a radius
+		# therefore, the radius will be based on the SMALLER of the width or height
+		
+		return self.chunkDefineExact(topLeftCorner, (0, 0), regionNum, radius, True, True)
+
+
+	def chunkFillColorAverage(self):
+		for region in self.regionList:
+			region.imageFillRegion(region.getRegionPixelAverage())
 	
 	
 	def __init__(self, imageObject, imageLoaded):
@@ -126,10 +170,9 @@ def regionTestA():
 
 
 def chunkTestA():
-	
 	rc1 = RegionChunk(myImage, myImageLoad)
 
-	rc1.chunkDefineExact(0, 0, 0, 0, 40, 20, 50, True, True)
+	rc1.chunkDefineExact((0, 0), (0, 0), (40, 20), 25, True, True)
 
 	rc1List = rc1.regionList
 
@@ -142,4 +185,22 @@ def chunkTestA():
 	myImage.show("cooleo")
 
 
-chunkTestA()
+def chunkTestB():
+	rc2 = RegionChunk(myImage, myImageLoad)
+	
+	rc2.chunkDefinePack((0, 0), (2000, 400), (80, 15), True)
+	
+	rc2.chunkFillColorAverage()
+	
+	myImage.show()
+
+
+def chunkTestC():
+	color = myImageLoad[0, 0]
+
+	redBackgroundCheck(color)
+
+
+#chunkTestA()
+#chunkTestB()
+chunkTestC()
