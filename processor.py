@@ -18,6 +18,58 @@ def imageBoundsCheckRadius(image, x, y, radius):
 	return (x - radius >= 0 and y - radius >= 0) and (x < size[0] - radius and y < size[1] - radius)
 
 
+
+def redBackgroundCheckDebugSimulation():
+	lowBound = 0
+	highBound = 140
+	increment = 10
+	
+	regionSquareRadius = 50
+	regionSquareDiameter = regionSquareRadius * 2
+	
+	# the number of different possible shades of red to test
+	# also the number of squares needed to show each possible shade
+	colorCount = int((highBound - lowBound) / increment) + 1
+	
+	print(colorCount)
+	
+	# image to render the regions onto
+	blankImageRes = (colorCount * regionSquareDiameter, regionSquareDiameter)
+	blankImage = Image.new("RGB", blankImageRes, "green")
+	blankImageLoad = blankImage.load()
+
+	print(blankImageRes)
+
+	#redPaletteChunk = RegionChunk(blankImage, blankImageLoad)
+	#success = redPaletteChunk.chunkDefineExact((0, 0), (0, 0), (colorCount, 1), regionSquareRadius, True, True)
+	
+	#print(success)
+	#print(len(redPaletteChunk.regionList))
+
+	posX = 0
+	currentColorVal = lowBound
+
+	diffBright = 150
+
+	for regionIndex in range(colorCount):		
+		#region = redPaletteChunk.regionList[regionIndex]
+		region = Region(blankImage, blankImageLoad, (posX, regionSquareRadius), regionSquareRadius)
+		
+		maxNonRedVal = currentColorVal
+		diffThresh = min(int(diffBright * (maxNonRedVal / 255)), 255)
+		redShadeColor = (maxNonRedVal + diffThresh, maxNonRedVal, maxNonRedVal)
+		
+		print('index=%d\tmaxnonred=%d\tthresh=%d\tshade=%s' % (regionIndex, maxNonRedVal, diffThresh, str(redShadeColor)))
+		
+		region.imageFillRegion(redShadeColor)
+		
+		currentColorVal += increment
+		posX += regionSquareDiameter
+	
+	blankImage.show()
+
+
+
 def redBackgroundCheck(color):
 	other = 30
 	color = (0, other, other)
@@ -111,8 +163,10 @@ class Region:
 		centerX = self.pixLocation[0]
 		centerY = self.pixLocation[1]
 		
-		for x in range(centerX - self.pixRadius, centerX + self.pixRadius + 1):
-			for y in range(centerY - self.pixRadius, centerY + self.pixRadius + 1):
+		# should I have a +1 to the right-hand bound of the horizontal and vertical range??
+		# the +1 results in an index bound error when in an image with a resolution INDENTICAL to the region size
+		for x in range(centerX - self.pixRadius, centerX + self.pixRadius):
+			for y in range(centerY - self.pixRadius, centerY + self.pixRadius):
 				self.imageLoaded[x, y] = color
 
 	#def getColorDominance(color):
@@ -127,8 +181,11 @@ class Region:
 		if self.pixRadius == 0:
 			pixelList.append(self.imageLoaded[centerX, centerY])
 		else:
-			for x in range(centerX - self.pixRadius, centerX + self.pixRadius + 1):
-				for y in range(centerY - self.pixRadius, centerY + self.pixRadius + 1):
+			# should I have a +1 to the right-hand bound of the horizontal and vertical range??
+			# the +1 results in an index bound error when in an image with a resolution INDENTICAL to the region size
+			# YET, the +1 produces the correct (or at least expected) number of items in the pixelList
+			for x in range(centerX - self.pixRadius, centerX + self.pixRadius):
+				for y in range(centerY - self.pixRadius, centerY + self.pixRadius):
 					#print('[[ %d , %d ]]' % (x, y))
 					pixelList.append(self.imageLoaded[x, y])
 		
@@ -196,9 +253,11 @@ def chunkTestB():
 
 
 def chunkTestC():
-	color = myImageLoad[0, 0]
+	redBackgroundCheckDebugSimulation()
+	#color = myImageLoad[0, 0]
 
-	redBackgroundCheck(color)
+	#redBackgroundCheck(color)
+	
 
 
 #chunkTestA()
