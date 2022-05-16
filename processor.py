@@ -1,6 +1,6 @@
 from PIL import Image
 
-fileName = 'sample/IMG_8218.jpg'
+fileName = 'sample/IMG_8222.jpg'
 
 myImage = Image.open(fileName)
 myImageLoad = myImage.load()
@@ -71,22 +71,24 @@ def redBackgroundCheckDebugSimulation():
 
 
 def redBackgroundCheck(color):
-	other = 30
-	color = (0, other, other)
-	
+	# the maximum value between G(reen) and B(lue)
 	maxNonRedVal = max(color[1], color[2])
+	maxNonRedValAllowed = 130
 	
-	diffBright = 200
-	diffThresh = int(diffBright * (maxNonRedVal / 255))
+	# this is a highly generalized number: the GREATER the number, the GREATER the minimum difference will be
+	diffBright = 160
 	
-	color = (maxNonRedVal + diffThresh, color[1], color[2])
+	# the main algorithm for the minimum DIFFERENCE between the R(ed) and other G and B maximum
+	diffThresh = min(int(diffBright * (maxNonRedVal / 255)), 255)
 	
-	print('maxVal %d' % maxNonRedVal)
-	print('color %s' % str(color))
-	print('diffB %s' % str(diffThresh))
+	# the R(ed) value of the color must exceed this amount for the whole color to be considered for our purposes "red"
+	minimumRedVal = maxNonRedVal + diffThresh
 	
-	im = Image.new("RGB", (512, 512), "white")
-	im.show()
+	#print('given color: %s\tred minimum: %d\tdiffThresh: %d' % (str(color), minimumRedVal, diffThresh))
+	
+	isRed = (color[0] >= minimumRedVal) and (maxNonRedVal <= maxNonRedValAllowed)
+	
+	return isRed
 
 
 class RegionChunk:
@@ -150,6 +152,12 @@ class RegionChunk:
 			region.imageFillRegion(region.getRegionPixelAverage())
 	
 	
+	def chunkLabelRedDetectRegions(self):
+		for region in self.regionList:
+			if(region.isRegionRed()):
+				region.imageFillRegion((255, 0, 255))
+	
+	
 	def __init__(self, imageObject, imageLoaded):
 		self.imageObject = imageObject
 		self.imageLoaded = imageLoaded
@@ -158,6 +166,11 @@ class RegionChunk:
 
 
 class Region:
+
+	def isRegionRed(self):
+		colorAverage = self.getRegionPixelAverage()
+		return redBackgroundCheck(colorAverage)
+
 
 	def imageFillRegion(self, color):
 		centerX = self.pixLocation[0]
@@ -169,8 +182,6 @@ class Region:
 			for y in range(centerY - self.pixRadius, centerY + self.pixRadius):
 				self.imageLoaded[x, y] = color
 
-	#def getColorDominance(color):
-		
 
 	def getRegionPixelList(self):
 		centerX = self.pixLocation[0]
@@ -226,6 +237,8 @@ def regionTestA():
 	r1.imageShowRegion()
 
 
+# OLDER example of using a chunk to fill regions with their own average colors
+
 def chunkTestA():
 	rc1 = RegionChunk(myImage, myImageLoad)
 
@@ -242,12 +255,24 @@ def chunkTestA():
 	myImage.show("cooleo")
 
 
+# example of using a chunk to fill regions with their own average colors
 def chunkTestB():
 	rc2 = RegionChunk(myImage, myImageLoad)
 	
 	rc2.chunkDefinePack((0, 0), (2000, 400), (80, 15), True)
 	
 	rc2.chunkFillColorAverage()
+	
+	myImage.show()
+
+
+def chunkTestB2():
+	rcb2 = RegionChunk(myImage, myImageLoad)
+	
+	#print(myImage.size)
+	rcb2.chunkDefinePack((0, 0), (2000, 3500), (60, 100), True)
+	
+	rcb2.chunkLabelRedDetectRegions()
 	
 	myImage.show()
 
@@ -262,4 +287,5 @@ def chunkTestC():
 
 #chunkTestA()
 #chunkTestB()
-chunkTestC()
+chunkTestB2()
+#chunkTestC()
