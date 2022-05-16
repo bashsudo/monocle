@@ -134,17 +134,31 @@ class RegionChunk:
 		height = bottomRightCorner[1] - topLeftCorner[1]
 		
 		radiusCalc = (int(width / regionNum[0]), int(height / regionNum[1]))
-		radius = 0
+		radius = min(radiusCalc)
 		
 		if(useMax):
 			radius = max(radiusCalc)
-		else:
-			radius = min(radiusCalc)
 		
 		# regions cannot have arbitrary widths or lengths, they MUST conform to a radius
 		# therefore, the radius will be based on the SMALLER of the width or height
 		
 		return self.chunkDefineExact(topLeftCorner, (0, 0), regionNum, radius, True, True)
+
+
+	def chunkDefinePackAuto(self, topLeftCorner, bottomRightCorner, regionRadius):
+		self.regionList = []
+		
+		width = bottomRightCorner[0] - topLeftCorner[0]
+		height = bottomRightCorner[1] - topLeftCorner[1]
+		
+		# LOOK AT THIS LATER: the getRegionPixelList method in the Region class gets an index out of bounds error
+		# maybe getRegionPixelList is to blame, not this method
+		regionNumHorz = max(int(width / regionRadius) - 1, 0)
+		regionNumVert = max(int(height / regionRadius) - 1, 0)
+		
+		regionNum = (regionNumHorz, regionNumVert)
+		
+		return self.chunkDefineExact(topLeftCorner, (0, 0), regionNum, regionRadius, True, True)
 
 
 	def chunkFillColorAverage(self):
@@ -269,8 +283,12 @@ def chunkTestB():
 def chunkTestB2():
 	rcb2 = RegionChunk(myImage, myImageLoad)
 	
-	#print(myImage.size)
-	rcb2.chunkDefinePack((0, 0), (2000, 3500), (60, 100), True)
+	imageWidth = myImage.size[0]
+	imageHeight = myImage.size[1]
+	
+	print(myImage.size)
+	#rcb2.chunkDefinePack((0, 0), (2000, 3500), (60, 100), True)
+	rcb2.chunkDefinePackAuto((200, 0), (imageWidth, 600), 24)
 	
 	rcb2.chunkLabelRedDetectRegions()
 	
