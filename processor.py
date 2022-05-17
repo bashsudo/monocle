@@ -1,7 +1,8 @@
 from PIL import Image
 import time
 
-fileName = 'sample/IMG_8222.jpg'
+#fileName = 'sample/IMG_8222.jpg'
+fileName = 'sample/IMG_8238.jpg'
 
 myImage = Image.open(fileName)
 myImageLoad = myImage.load()
@@ -17,7 +18,6 @@ def imageBoundsCheck(image, x, y):
 def imageBoundsCheckRadius(image, x, y, radius):
 	size = image.size
 	return (x - radius >= 0 and y - radius >= 0) and (x < size[0] - radius and y < size[1] - radius)
-
 
 
 def redBackgroundCheckDebugSimulation():
@@ -68,7 +68,6 @@ def redBackgroundCheckDebugSimulation():
 		posX += regionSquareDiameter
 	
 	blankImage.show()
-
 
 
 def redBackgroundCheck(color):
@@ -391,6 +390,85 @@ class Region:
 		}
 
 
+class Cropper:
+	
+	# a method that is not SPECIFICALLY meant for the yearbook images (more generic)
+	# "box" is a tuple: (left, upper, right, lower) pixel coordinate
+	def chunkSetup(self, outerBox, innerBox, regionRadius):
+		self.chunkDict['top'].chunkDefinePackAuto((innerBox[0], outerBox[1]), (innerBox[2], innerBox[1]), regionRadius)
+		self.chunkDict['bottom'].chunkDefinePackAuto((innerBox[0], innerBox[3]), (innerBox[2], outerBox[3]), regionRadius)
+		self.chunkDict['left'].chunkDefinePackAuto((outerBox[0], outerBox[1]), (innerBox[1], outerBox[3]), regionRadius)
+		self.chunkDict['right'].chunkDefinePackAuto((innerBox[2], outerBox[1]), (outerBox[2], outerBox[3]), regionRadius)
+	
+	
+	def chunkFillColor(self):
+		#self.chunkDict['bottom'].chunkFillColor(self.fillColorSamples[1])
+		colorIndex = 0
+		
+		for side in self.chunkSides:
+			self.chunkDict[side].chunkFillColor(self.fillColorSamples[colorIndex])
+			
+			colorIndex = (colorIndex + 1) % len(self.fillColorSamples)
+	
+	
+	def chunkSetupTextbook(self, distanceUntilTripod, leftRightChunkWidth, topBottomChunkHeight, regionRadius):
+		imageWidth = self.imageObject.size[0]
+		imageHeight = self.imageObject.size[1]
+		
+		outerBox = (0, 0, imageWidth, distanceUntilTripod)
+		innerBox = (leftRightChunkWidth, topBottomChunkHeight, imageWidth - leftRightChunkWidth, distanceUntilTripod - topBottomChunkHeight)
+		
+		self.chunkSetup(outerBox, innerBox, regionRadius)
+	
+	
+	def crop(self, cropMarginPixel, outlierThresh, filterBoundOutliers=True, strictFilter=False, debug=False):
+		chunkResults = {}
+		
+		for side in self.chunkSides:
+			chunk = self.chunkDict[side]
+			
+			chunkResults[side] = chunk.chunkRedDetectRegions(outlierThresh, filterBoundOutliers, strictFilter, debug, False)
+		
+		cropTop = chunkResults['top']['boundFarthest']['bottom'] - cropMarginPixel
+		cropBottom = chunkResults['bottom']['boundFarthest']['top'] + cropMarginPixel
+		cropLeft = chunkResults['left']['boundFarthest']['right'] - cropMarginPixel
+		cropRight = chunkResults['right']['boundFarthest']['left'] + cropMarginPixel
+		
+		if(debug):
+			print('top: %d, bottom: %d, left: %d, right %d' % (cropTop, cropBottom, cropLeft, cropRight))
+		
+		imageCropped = self.imageObject.crop((cropLeft, cropTop, cropRight, cropBottom))
+		
+		# crop (left, upper, right, lower) tuple box
+		return imageCropped
+	
+	
+	def __init__(self, imageObject, imageLoaded):
+		self.fillColorSamples = []
+		
+		for red in range(0, 2):
+			for green in range(0, 2):
+				for blue in range(0, 2):
+					self.fillColorSamples.append((red * 255, green * 255, blue * 255))
+		
+		del self.fillColorSamples[0]
+		del self.fillColorSamples[6]
+		
+		self.chunkSides = [
+			'top',
+			'bottom',
+			'left',
+			'right'
+		]
+		
+		self.imageObject = imageObject
+		self.imageLoaded = imageLoaded
+		
+		self.chunkDict = {}
+		
+		for side in self.chunkSides:
+			self.chunkDict[side] = RegionChunk(imageObject, imageLoaded)
+
 
 def regionTestA():	
 	r1 = Region(myImage, myImageLoad, (2, 2), 2)
@@ -508,26 +586,33 @@ def chunkTestB3():
 	imageWidth = myImage.size[0]
 	imageHeight = myImage.size[1]
 	regionRadius = 24
+	#regionRadius = 4
 	
 	# the amount of pixels until you pass the red shirt and are now in the "tripod" area for my test images
 	pixelLocationTripod = 2850
-	leftChunkWidth = 300
+	
+	topBottomChunkHeight = 400
+	leftRightChunkWidth = 300
 	
 	print(myImage.size)
 	
 	topChunk = RegionChunk(myImage, myImageLoad)
-	topChunk.chunkDefinePackAuto((leftChunkWidth, 0), (imageWidth, 550), regionRadius)
+	topChunk.chunkDefinePackAuto((leftRightChunkWidth, 0), (imageWidth - leftRightChunkWidth, topBottomChunkHeight), regionRadius)
 	
 	bottomChunk = RegionChunk(myImage, myImageLoad)
-	bottomChunk.chunkDefinePackAuto((leftChunkWidth, pixelLocationTripod - 400), (imageWidth, pixelLocationTripod), regionRadius)
+	bottomChunk.chunkDefinePackAuto((leftRightChunkWidth, pixelLocationTripod - topBottomChunkHeight), (imageWidth - leftRightChunkWidth, pixelLocationTripod), regionRadius)
 	
 	leftChunk = RegionChunk(myImage, myImageLoad)
-	leftChunk.chunkDefinePackAuto((0, 0), (leftChunkWidth, pixelLocationTripod), regionRadius)
+	leftChunk.chunkDefinePackAuto((0, 0), (leftRightChunkWidth, pixelLocationTripod), regionRadius)
+	
+	rightChunk = RegionChunk(myImage, myImageLoad)
+	rightChunk.chunkDefinePackAuto((imageWidth - leftRightChunkWidth, 0), (imageWidth, pixelLocationTripod), regionRadius)
 	
 	chunkDict = {
 		'top':topChunk,
 		'bottom':bottomChunk,
-		'left':leftChunk
+		'left':leftChunk,
+		'right':rightChunk
 	}
 	
 	command = input('command? ')
@@ -536,16 +621,24 @@ def chunkTestB3():
 		topChunk.chunkFillColor((255, 0, 0))
 		bottomChunk.chunkFillColor((0, 0, 255))
 		leftChunk.chunkFillColor((255, 255, 0))
+		rightChunk.chunkFillColor((0, 255, 0))
 		myImage.show()
 	
+	# show the original image
+	elif(command == 'show'):
+		myImage.show()
+	
+	# red detect
 	elif(command == 'rd'):
-		cropMarginPixel = 24
+		ask = input('debug (d) or crop (c)? (c/d) ')
+		
+		cropMarginPixel = int(regionRadius * 1.25)
 		outlierThresh = 96
 		filterOutlier = True
 		strictFilter = False
 		
 		# fill in red regions with pink for debug purposes
-		fillFinding = False
+		fillFinding = (ask == 'd')
 		
 		chunkResults = {}
 		
@@ -557,14 +650,27 @@ def chunkTestB3():
 		cropTop = chunkResults['top']['boundFarthest']['bottom'] - cropMarginPixel
 		cropBottom = chunkResults['bottom']['boundFarthest']['top'] + cropMarginPixel
 		#cropRight = chunkResults['left']['boundAverage']['right']
-		cropRight = chunkResults['left']['boundFarthest']['right'] - cropMarginPixel
+		cropLeft = chunkResults['left']['boundFarthest']['right'] - cropMarginPixel
 		
-		print('top %d, bottom %d, right %d' % (cropTop, cropBottom, cropRight))
+		print('top %d, bottom %d, right %d' % (cropTop, cropBottom, cropLeft))
 		
 		# crop: (left, upper, right, lower)
-		myImageCropped = myImage.crop((cropRight, cropTop, imageWidth, cropBottom))
+		myImageCropped = myImage.crop((cropLeft, cropTop, imageWidth, cropBottom))
 		
-		myImageCropped.show()
+		if(ask == 'd'):
+			myImage.show()
+		else:
+			myImageCropped.show()
+
+
+def chunkTestB4():
+	c1 = Cropper(myImage, myImageLoad)
+	
+	c1.chunkSetupTextbook(2850, 300, 400, 24)
+	
+	c1.crop(18, 96, True, False).show()
+	
+	#myImage.show()
 
 
 # running the debug method for showing the palettes of red for the red region detection
@@ -579,5 +685,7 @@ def chunkTestC():
 #chunkTestA()
 #chunkTestB()
 #chunkTestB2()
-chunkTestB3()
+#chunkTestB3()
+chunkTestB4()
 #chunkTestC()
+ 
