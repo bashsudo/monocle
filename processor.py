@@ -1,4 +1,5 @@
 from PIL import Image
+import time
 
 fileName = 'sample/IMG_8222.jpg'
 
@@ -172,6 +173,145 @@ class RegionChunk:
 				region.imageFillRegion((255, 0, 255))
 	
 	
+	def chunkFillColor(self, color):
+		for region in self.regionList:
+			region.imageFillRegion(color)
+	
+	
+	# outlierThresh: for each direction, if the bound of a iterated red region EXCEEDS the average by a certain amount, then it will NOT be considered as the new "farthest"
+	# label: color the region if it is red
+	# strictFilter: ONLY use the AVERAGE BOUNDS if True, use both average and PREVIOUS CONSECUTIVE REGION BOUNDS is False
+	def chunkRedDetectRegions(self, outlierThresh, filterBoundOutliers=True, strictFilter=False, label=False): #boundCheckName
+		regionRedDetect = []
+		
+		for region in self.regionList:
+			if(region.isRegionRed()):
+				regionRedDetect.append(region)
+		
+		# use the FIRST REGION IN THE WHOLE LIST, REGARDLESS IF IT IS RED OR NOT
+		#regionFirst = self.regionList[0]
+		
+		# use the FIRST REGION in the LIST OF "RED" REGIONS (RECOMMENDED)
+		regionFirst = regionRedDetect[0]
+		
+		
+		regionFirstBounds = regionFirst.pixBounds
+		
+		# the topmost, bottommost, leftmost, rightmost regions that triggered
+		# NOTE: this is calculated by side CLOSEST to a particular direction (e.g. topmost), NOT the center alone
+		boundDirs = ['top', 'bottom', 'left', 'right']
+		
+		boundFarthest = {
+			'top' : regionFirstBounds['top'],
+			'bottom' : regionFirstBounds['bottom'],
+			'left' : regionFirstBounds['left'],
+			'right' : regionFirstBounds['right']
+		}
+		
+		boundAverage = boundFarthest.copy()
+		
+		boundSum = boundFarthest.copy()
+		
+		# for left and top, find minimum value; for right and bottom, find maximum value
+		dirLessThan = ['left', 'top']
+		dirGreaterThan = ['right', 'bottom']
+		
+		regionCountForAverage = 0
+		
+		regionPrevBounds = regionFirstBounds
+		
+		print('FIRST REGION BOUND: %s' % str(boundFarthest))
+		time.sleep(3)
+		
+		diffPrev = 0
+		
+		for region in regionRedDetect[1:]:
+			bounds = region.pixBounds
+			
+			#for b in boundDirs:
+			#	boundSum[b] += bounds[b]
+			#	boundAverage[b] = boundSum[b] / regionCountForAverage
+			
+			#isOutlierAnyDir = False
+			
+			# PERSONAL NOTES:
+			# situation A: there is only ONE OUTLIER region very far away from the rest
+			# siutation B: there is a GROUP OF OUTLIERS far away from the MAJORITY
+			
+			# using diffAvg alone is BEST for SITUATION B, as it will STRICTLY ignore ANY NUMBER OF REGIONS that are far away from the rest
+			# using both diffAvg and diffPrev is BEST for accurate "boundFarthest" results, BUT can be tricked by a small group of outlier regions
+			# 		(a small group, as in, consecutive regions in the list: one after the other)
+			
+			for b in dirLessThan:
+				diffAvg = abs(bounds[b] - boundAverage[b])
+				
+				if strictFilter:
+					diffPrev = diffAvg
+				else:
+					diffPrev = abs(bounds[b] - regionPrevBounds[b])
+				
+				if(diffAvg <= outlierThresh or diffPrev <= outlierThresh or not filterBoundOutliers):
+					regionCountForAverage += 1
+					boundSum[b] += bounds[b]
+					boundAverage[b] = boundSum[b] / regionCountForAverage
+					
+					if(bounds[b] < boundFarthest[b]):
+						boundFarthest[b] = bounds[b]
+				
+			#for b in dirGreaterThan:
+			#	diff = abs(bounds[b] - boundAverage[b])
+			#	
+			#	if(bounds[b] > boundFarthest[b] and (diff <= outlierThresh or not filterBoundOutliers)):
+			#		boundFarthest[b] = bounds[b]
+			
+			for b in dirGreaterThan:
+				diffAvg = abs(bounds[b] - boundAverage[b])
+				
+				if strictFilter:
+					diffPrev = diffAvg
+				else:
+					diffPrev = abs(bounds[b] - regionPrevBounds[b])
+				
+				if(diffAvg <= outlierThresh or diffPrev <= outlierThresh or not filterBoundOutliers):
+					regionCountForAverage += 1
+					boundSum[b] += bounds[b]
+					boundAverage[b] = boundSum[b] / regionCountForAverage
+					
+					if(bounds[b] > boundFarthest[b]):
+						boundFarthest[b] = bounds[b]
+			
+			print('-----')
+			print('\nPOS: %s' % str(region.pixLocation))
+			print('\nAVG')
+			for d in boundDirs:
+				print('\tDIR: %s\tVALUE: %s' % (d, int(boundAverage[d])))
+			
+			#for b in dirLessThan:
+			#	diff = abs(bounds[b] - boundAverage[b])
+			#	
+			#	checkOutlier = (diff > outlierThresh)
+			#	if(checkOutlier)
+			#	
+			#	else(bounds[b] < boundFarthest[b] and (not checkOutlier or not filterBoundOutliers)):
+				
+			#for b in dirGreaterThan:
+			
+			if label:
+				region.imageFillRegion((255, 0, 255))
+			
+			regionPrevBounds = bounds
+			
+			#time.sleep(0.1)
+		
+		return {
+			'regionList' : regionRedDetect,
+			'boundFarthest' : boundFarthest,
+			'boundSum' : boundSum,
+			'boundAverage' : boundAverage
+		}
+				
+	
+	
 	def __init__(self, imageObject, imageLoaded):
 		self.imageObject = imageObject
 		self.imageLoaded = imageLoaded
@@ -237,6 +377,14 @@ class Region:
 		self.imageLoaded = imageLoaded
 		self.pixLocation = pixLocation # the center of the region
 		self.pixRadius = pixRadius
+		
+		# the topmost, bottommost, leftmost, and rightmost x/y values
+		self.pixBounds = {
+			'top':(pixLocation[1] - pixRadius),
+			'bottom':(pixLocation[1] + pixRadius),
+			'left':(pixLocation[0] - pixRadius),
+			'right':(pixLocation[0] + pixRadius)
+		}
 
 
 
@@ -289,9 +437,63 @@ def chunkTestB2():
 	print(myImage.size)
 	#rcb2.chunkDefinePack((0, 0), (2000, 3500), (60, 100), True)
 	rcb2.chunkDefinePackAuto((200, 0), (imageWidth, 600), 24)
+	#rcb2.chunkDefinePackAuto((0, 0), (imageWidth, imageHeight), 25)
 	
-	rcb2.chunkLabelRedDetectRegions()
+	command = input('command? ')
 	
+	if(command == 'fill'):
+		rcb2.chunkFillColor((255, 0, 255))
+		
+	elif(command == 'avg'):
+		rcb2.chunkFillColorAverage()
+		
+	elif(command == 'rd'):
+		attributes = {
+			'filter outlier':'boolean',
+			'strict average-only filter':'boolean',
+			'outlier pixel threshold':'int'
+		}
+		
+		attributeValues = {}
+		
+		for attName in attributes.keys():
+			attType = attributes[attName]
+			
+			if attType == 'boolean':
+				print('\n(this is a boolean, type "y" for true/yes, type "n" for false/no')
+			
+			ask = input('ATTRIBUTE: %s (%s)> ' % (attName, attType))
+			
+			if(attType == 'boolean'):
+				attributeValues[attName] = (ask == 'y')
+				
+			elif(attType == 'int'):
+				attributeValues[attName] = int(ask)
+			
+			print('VALUE: %s (%s) = %s' % (attName, attType, str(attributeValues[attName])))
+			print('- - - - - - - - -')
+				
+		print('RUNNING RED-DETECT IN 3 SECONDS...')
+		
+		outlierThresh = attributeValues['outlier pixel threshold']
+		modeOutlierFilter = attributeValues['filter outlier']
+		modeStrict = attributeValues['strict average-only filter']
+		
+		time.sleep(3)
+		
+		# thresh recommend 96
+		results = rcb2.chunkRedDetectRegions(outlierThresh, modeOutlierFilter, modeStrict, True)
+		#rcb2.chunkLabelRedDetectRegions()
+		
+		# PRINT RESULTS, EXCLUDING LIST OF REGION OBJECTS
+		boundDataKeys = list(results.keys())[1:]
+		
+		for key in boundDataKeys:
+			boundData = results[key]
+			print('\tDATA: %s' % key)
+			
+			for direction in boundData.keys():
+				print('\t\tDIRECTION: %s\t\tVALUE: %d' % (direction, boundData[direction]))
 	myImage.show()
 
 
