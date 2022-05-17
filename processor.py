@@ -2,7 +2,8 @@ from PIL import Image
 import time
 
 #fileName = 'sample/IMG_8222.jpg'
-fileName = 'sample/IMG_8238.jpg'
+#fileName = 'sample/IMG_8238.jpg'
+fileName = 'sample/right_2.jpg'
 
 myImage = Image.open(fileName)
 myImageLoad = myImage.load()
@@ -187,6 +188,9 @@ class RegionChunk:
 		for region in self.regionList:
 			if(region.isRegionRed()):
 				regionRedDetect.append(region)
+		
+		if(not regionRedDetect):
+			return None
 		
 		# use the FIRST REGION IN THE WHOLE LIST, REGARDLESS IF IT IS RED OR NOT
 		#regionFirst = self.regionList[0]
@@ -421,18 +425,110 @@ class Cropper:
 		self.chunkSetup(outerBox, innerBox, regionRadius)
 	
 	
-	def crop(self, cropMarginPixel, outlierThresh, filterBoundOutliers=True, strictFilter=False, debug=False):
+	# returns if the book is LEFT or RIGHT orientation
+	# CAN RETURN STRING: "left" "right" "both"
+	# SOMEWHAT REDUNDANT, MAY REMOVE LATER (effectively integrated this with the "crop" method)
+	def orientationDetect(self, outlierThresh, filterBoundOutliers=True, strictFilter=False):
+		# if chunks not set up yet
+		if(not self.chunkDict):
+			return None
+		
+		leftResults = self.chunkDict['left'].chunkRedDetectRegions(outlierThresh, filterBoundOutliers, strictFilter)
+		rightResults = self.chunkDict['right'].chunkRedDetectRegions(outlierThresh, filterBoundOutliers, strictFilter)
+		
+		leftCount = len(leftResults['regionList'])
+		rightCount = len(rightResults['regionList'])
+		
+		if(rightCount > leftCount):
+			return "right"
+		elif(leftCount > rightCount):
+			return "left"
+		else:
+			return "both"
+		
+	
+	# forceOrientation: you can have only EITHER left or right side of book cropped (NOT both left and right side)
+	def crop(self, cropMarginPixel, outlierThresh, filterBoundOutliers=True, strictFilter=False, forceOrientation=False, debug=False):
+		# if chunks not set up yet
+		if(not self.chunkDict):
+			return None
+		
+		imageWidth = self.imageObject.size[0]
+		imageHeight = self.imageObject.size[1]
+		
+		
+		defaultCropValues = {
+			'top':0,
+			'bottom':imageHeight,
+			'left':0,
+			'right':imageWidth
+		}
+		
+		# each side has a list with the following values:
+			# 0 = for a particular side of chunk, this is the side of THAT chunk OPPPOSITE to its side
+			# 1 = determines whether to subtract (-1) or add (1) the margin
+		
+		chunkSideRegionRedCount = {
+			'top':0,
+			'bottom':0,
+			'left':0,
+			'right':0
+		}
+		
+		cropSettings = {
+			'top':['bottom', -1],
+			'bottom':['top', 1],
+			'left':['right', -1],
+			'right':['left', 1]
+		}
+		
+		cropValues = defaultCropValues.copy()
+		
 		chunkResults = {}
 		
 		for side in self.chunkSides:
 			chunk = self.chunkDict[side]
 			
-			chunkResults[side] = chunk.chunkRedDetectRegions(outlierThresh, filterBoundOutliers, strictFilter, debug, False)
+			settings = cropSettings[side]
+			
+			results = chunk.chunkRedDetectRegions(outlierThresh, filterBoundOutliers, strictFilter, debug, False)
+			chunkResults[side] = results
+			
+			if results:
+				cropValues[side] = results['boundFarthest'][settings[0]] + cropMarginPixel * settings[1]
+				chunkSideRegionRedCount[side] = len(results['regionList'])
+				
 		
-		cropTop = chunkResults['top']['boundFarthest']['bottom'] - cropMarginPixel
-		cropBottom = chunkResults['bottom']['boundFarthest']['top'] + cropMarginPixel
-		cropLeft = chunkResults['left']['boundFarthest']['right'] - cropMarginPixel
-		cropRight = chunkResults['right']['boundFarthest']['left'] + cropMarginPixel
+		cropTop = cropValues['top']
+		cropBottom = cropValues['bottom']
+		cropLeft = cropValues['left']
+		cropRight = cropValues['right']
+		
+		#cropTop = chunkResults['top']['boundFarthest']['bottom'] - cropMarginPixel
+		#cropBottom = chunkResults['bottom']['boundFarthest']['top'] + cropMarginPixel
+		
+		#cropLeft = chunkResults['left']['boundFarthest']['right'] - cropMarginPixel
+		#cropRight = chunkResults['right']['boundFarthest']['left'] + cropMarginPixel
+		
+		if(forceOrientation):
+			leftCount = chunkSideRegionRedCount['left']
+			rightCount = chunkSideRegionRedCount['right']
+			orientation = 'both'
+			
+			if(rightCount > leftCount):
+				orientation = 'right'
+			elif(rightCount < leftCount):
+				orientation = 'left'
+			
+			#print('orientation %s' % str(orientation))
+			
+			if(orientation == 'left'):
+				cropRight = defaultCropValues['right']
+				
+			elif(orientation == 'right'):
+				cropLeft = defaultCropValues['left']
+				
+			# if both, assume to crop both left and right
 		
 		if(debug):
 			print('top: %d, bottom: %d, left: %d, right %d' % (cropTop, cropBottom, cropLeft, cropRight))
@@ -668,7 +764,7 @@ def chunkTestB4():
 	
 	c1.chunkSetupTextbook(2850, 300, 400, 24)
 	
-	c1.crop(18, 96, True, False).show()
+	c1.crop(18, 96, True, False, True, False).show()
 	
 	#myImage.show()
 
