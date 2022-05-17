@@ -181,7 +181,8 @@ class RegionChunk:
 	# outlierThresh: for each direction, if the bound of a iterated red region EXCEEDS the average by a certain amount, then it will NOT be considered as the new "farthest"
 	# label: color the region if it is red
 	# strictFilter: ONLY use the AVERAGE BOUNDS if True, use both average and PREVIOUS CONSECUTIVE REGION BOUNDS is False
-	def chunkRedDetectRegions(self, outlierThresh, filterBoundOutliers=True, strictFilter=False, label=False): #boundCheckName
+	def chunkRedDetectRegions(self, outlierThresh, filterBoundOutliers=True, strictFilter=False, label=False, verboseDebug=False): #boundCheckName
+		
 		regionRedDetect = []
 		
 		for region in self.regionList:
@@ -220,8 +221,9 @@ class RegionChunk:
 		
 		regionPrevBounds = regionFirstBounds
 		
-		print('FIRST REGION BOUND: %s' % str(boundFarthest))
-		time.sleep(3)
+		if verboseDebug:
+			print('FIRST REGION BOUND: %s' % str(boundFarthest))
+			time.sleep(3)
 		
 		diffPrev = 0
 		
@@ -280,12 +282,6 @@ class RegionChunk:
 					if(bounds[b] > boundFarthest[b]):
 						boundFarthest[b] = bounds[b]
 			
-			print('-----')
-			print('\nPOS: %s' % str(region.pixLocation))
-			print('\nAVG')
-			for d in boundDirs:
-				print('\tDIR: %s\tVALUE: %s' % (d, int(boundAverage[d])))
-			
 			#for b in dirLessThan:
 			#	diff = abs(bounds[b] - boundAverage[b])
 			#	
@@ -301,7 +297,15 @@ class RegionChunk:
 			
 			regionPrevBounds = bounds
 			
-			#time.sleep(0.1)
+			if verboseDebug:
+				print('-----')
+				print('\nPOS: %s' % str(region.pixLocation))
+				print('\nAVG')
+				
+				for d in boundDirs:
+					print('\tDIR: %s\tVALUE: %s' % (d, int(boundAverage[d])))
+				
+				time.sleep(0.1)
 		
 		return {
 			'regionList' : regionRedDetect,
@@ -428,6 +432,7 @@ def chunkTestB():
 	myImage.show()
 
 
+# new methods for the RegionChunk, especially the "red-detect" method
 def chunkTestB2():
 	rcb2 = RegionChunk(myImage, myImageLoad)
 	
@@ -482,21 +487,87 @@ def chunkTestB2():
 		time.sleep(3)
 		
 		# thresh recommend 96
-		results = rcb2.chunkRedDetectRegions(outlierThresh, modeOutlierFilter, modeStrict, True)
+		results = rcb2.chunkRedDetectRegions(outlierThresh, modeOutlierFilter, modeStrict, True, True)
 		#rcb2.chunkLabelRedDetectRegions()
 		
 		# PRINT RESULTS, EXCLUDING LIST OF REGION OBJECTS
 		boundDataKeys = list(results.keys())[1:]
 		
+		print('\nRED-DETECT RESULTS:')
 		for key in boundDataKeys:
 			boundData = results[key]
-			print('\tDATA: %s' % key)
+			print('DATA: %s' % key)
 			
 			for direction in boundData.keys():
-				print('\t\tDIRECTION: %s\t\tVALUE: %d' % (direction, boundData[direction]))
+				print('\tDIRECTION: %s\t\tVALUE: %d' % (direction, boundData[direction]))
 	myImage.show()
 
 
+# actually cropping an image for the first time
+def chunkTestB3():
+	imageWidth = myImage.size[0]
+	imageHeight = myImage.size[1]
+	regionRadius = 24
+	
+	# the amount of pixels until you pass the red shirt and are now in the "tripod" area for my test images
+	pixelLocationTripod = 2850
+	leftChunkWidth = 300
+	
+	print(myImage.size)
+	
+	topChunk = RegionChunk(myImage, myImageLoad)
+	topChunk.chunkDefinePackAuto((leftChunkWidth, 0), (imageWidth, 550), regionRadius)
+	
+	bottomChunk = RegionChunk(myImage, myImageLoad)
+	bottomChunk.chunkDefinePackAuto((leftChunkWidth, pixelLocationTripod - 400), (imageWidth, pixelLocationTripod), regionRadius)
+	
+	leftChunk = RegionChunk(myImage, myImageLoad)
+	leftChunk.chunkDefinePackAuto((0, 0), (leftChunkWidth, pixelLocationTripod), regionRadius)
+	
+	chunkDict = {
+		'top':topChunk,
+		'bottom':bottomChunk,
+		'left':leftChunk
+	}
+	
+	command = input('command? ')
+	
+	if(command == 'fill'):
+		topChunk.chunkFillColor((255, 0, 0))
+		bottomChunk.chunkFillColor((0, 0, 255))
+		leftChunk.chunkFillColor((255, 255, 0))
+		myImage.show()
+	
+	elif(command == 'rd'):
+		cropMarginPixel = 24
+		outlierThresh = 96
+		filterOutlier = True
+		strictFilter = False
+		
+		# fill in red regions with pink for debug purposes
+		fillFinding = False
+		
+		chunkResults = {}
+		
+		for chunkName in chunkDict.keys():
+			chunk = chunkDict[chunkName]
+			
+			chunkResults[chunkName] = chunk.chunkRedDetectRegions(outlierThresh, filterOutlier, strictFilter, fillFinding, False)
+			
+		cropTop = chunkResults['top']['boundFarthest']['bottom'] - cropMarginPixel
+		cropBottom = chunkResults['bottom']['boundFarthest']['top'] + cropMarginPixel
+		#cropRight = chunkResults['left']['boundAverage']['right']
+		cropRight = chunkResults['left']['boundFarthest']['right'] - cropMarginPixel
+		
+		print('top %d, bottom %d, right %d' % (cropTop, cropBottom, cropRight))
+		
+		# crop: (left, upper, right, lower)
+		myImageCropped = myImage.crop((cropRight, cropTop, imageWidth, cropBottom))
+		
+		myImageCropped.show()
+
+
+# running the debug method for showing the palettes of red for the red region detection
 def chunkTestC():
 	redBackgroundCheckDebugSimulation()
 	#color = myImageLoad[0, 0]
@@ -507,5 +578,6 @@ def chunkTestC():
 
 #chunkTestA()
 #chunkTestB()
-chunkTestB2()
+#chunkTestB2()
+chunkTestB3()
 #chunkTestC()
