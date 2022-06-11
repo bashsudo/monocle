@@ -1,50 +1,80 @@
-# Project Monocle: Automated Image Cropping
-# primary.py: Main Important Modules
+# Project Monocle: Automated Image Cropping for Books and Textbooks
+# primary.py: Main System and Operations
+
+# Eiza Stanford "charkybarky" 2022
+
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# >>> >>> >>> IMPORTS AND MODULES <<< <<< <<<
 from PIL import Image
 import time
 
-# returns true if all the following are true:
-#	x between values 0 inclusive, horizontal resolution exclusive
-#	y between values 0 inclusive, vertical resolution exclusive
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+
+
+
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# >>> >>> >>> GLOBAL FUNCTIONS <<< <<< <<<
+
 def imageBoundsCheck(image, x, y):
+	"""Returns True if x and y are within the bounds/resolution of the image; False otherwise.
+	
+	More specifically, return True if:
+		x between values 0 inclusive, horizontal resolution exclusive
+		y between values 0 inclusive, vertical resolution exclusive
+	"""
+	
 	size = image.size
 	return (x >= 0 and y >= 0) and (x < size[0] and y < size[1])
 
 
 def imageBoundsCheckRadius(image, x, y, radius):
+	"""Returns True if the radius from (x, y) is within the resolution and bounds of image; False otherwise."""
+	
 	size = image.size
 	return (x - radius >= 0 and y - radius >= 0) and (x < size[0] - radius and y < size[1] - radius)
 
 
 def redBackgroundCheck(color):
-	# the maximum value between G(reen) and B(lue)
+	"""Returns True if color is considered to be the (red) background and unoccupied by the book; False otherwise."""
+	
+	# >>> the maximum value between G(reen) and B(lue)
 	maxNonRedVal = max(color[1], color[2])
 	maxNonRedValAllowed = 130
 	
-	# this is a highly generalized number: the GREATER the number, the GREATER the minimum difference will be
+	# >>> this is a highly generalized number: the GREATER the number, the GREATER the minimum difference will be
 	diffBright = 160
 	
-	# the main algorithm for the minimum DIFFERENCE between the R(ed) and other G and B maximum
+	# >>> the main algorithm for the minimum DIFFERENCE between the R(ed) and other G and B maximum
 	diffThresh = min(int(diffBright * (maxNonRedVal / 255)), 255)
 	
-	# the R(ed) value of the color must exceed this amount for the whole color to be considered for our purposes "red"
+	# >>> the R(ed) value of the color must exceed this amount for the whole color to be considered for our purposes "red"
 	minimumRedVal = maxNonRedVal + diffThresh
-	
-	#print('given color: %s\tred minimum: %d\tdiffThresh: %d' % (str(color), minimumRedVal, diffThresh))
 	
 	isRed = (color[0] >= minimumRedVal) and (maxNonRedVal <= maxNonRedValAllowed)
 	
 	return isRed
 
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+
+
+
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# >>> >>> >>> CLASS: REGIONCHUNK <<< <<< <<<
 
 class RegionChunk:
 	
-	# you give the exact number of Regions in both the vertical and horizontal direction
-	# "posByCorner" = the start X/Y is actually the top left CORNER of a Region instead of the CENTER
-	# startPos: tuple (x,y)
-	# jump: tuple (x,y)
-	# regionNum: tuple (x,y)
 	def chunkDefineExact(self, startPos, jump, regionNum, regionRadius, posByCorner=False, jumpByRadius=False):
+		"""Chunk definition: return True if successfully updated the chunk to have exact number of Regions in horizontal and vertical direction.
+		
+		Parameters:
+			posByCorner:	If True, then the startPos is the top left corner of a Region instead of its center.
+			startPos:		2D tuple of integers (x, y); the position of the first, top-most and left-most Region.
+			jump:			2D tuple of integers (x, y); the amount of pixels between the position of each Region.
+							This considers the POSITION, not both the position and the radius.
+			regionNum:		2D tuple of integers (x, y).
+		"""
 		self.regionList = []
 		navX = startPos[0]
 		navY = startPos[1]
@@ -69,11 +99,20 @@ class RegionChunk:
 			navX -= jump[0] * (regionNum[0])
 		
 		return True
-		
-	# you give a number of pixels; it will try to pack as many Regions as it can depending on their radius
-	# considered to be more "lazy"
-	# "useMax" will choose the maximium calculated radius, instaed of minimum
+
+
 	def chunkDefinePack(self, topLeftCorner, bottomRightCorner, regionNum, useMax=False):
+		"""Chunk definition: return True if successfully updated the chunk to have Regions packed between two corners (fixed count).
+		
+		More specifically, the function will attempt to fit "regionNum" number of regions in both the vertical
+		and horizontal direction between the 2D int tuple "topLeftCorner" (topmost, leftmost pixel) and the
+		2D int tuple "bottomRightCorner" (bottommost, rigthmost pixel).
+		
+		The radius of these Regions is not fixed by the user: if boolean "useMax" is True, then the function
+		will attempt to use the greatest radius possible; this may only fit the area between the corners horizontally
+		or vertically, not both.
+		"""
+		
 		self.regionList = []
 		
 		width = bottomRightCorner[0] - topLeftCorner[0]
@@ -85,20 +124,28 @@ class RegionChunk:
 		if(useMax):
 			radius = max(radiusCalc)
 		
-		# regions cannot have arbitrary widths or lengths, they MUST conform to a radius
-		# therefore, the radius will be based on the SMALLER of the width or height
+		# >>> regions cannot have arbitrary widths or lengths, they MUST conform to a radius
+		# >>> therefore, the radius will be based on the SMALLER of the width or height
 		
 		return self.chunkDefineExact(topLeftCorner, (0, 0), regionNum, radius, True, True)
 
 
 	def chunkDefinePackAuto(self, topLeftCorner, bottomRightCorner, regionRadius):
+		"""Chunk definition: return True if successfully updated the chunk to have Regions packed between two corners (fixed radius).
+		
+		More specifically, the function will attempt to fit as many number of regions in both the vertical and horizontal
+		direction with a given, fixed radius between the 2D int tuple "topLeftCorner" (topmost, leftmost pixel) and the
+		2D int tuple "bottomRightCorner" (bottommost, rigthmost pixel).
+		
+		It is RECOMMENDED to use this function over chunkDefinePack.
+		"""
 		self.regionList = []
 		
 		width = bottomRightCorner[0] - topLeftCorner[0]
 		height = bottomRightCorner[1] - topLeftCorner[1]
 		
-		# LOOK AT THIS LATER: the getRegionPixelList method in the Region class gets an index out of bounds error
-		# maybe getRegionPixelList is to blame, not this method
+		# >>> LOOK AT THIS LATER: the getRegionPixelList method in the Region class gets an index out of bounds error
+		# >>> maybe getRegionPixelList is to blame, not this method
 		regionNumHorz = max(int(width / regionRadius) - 1, 0)
 		regionNumVert = max(int(height / regionRadius) - 1, 0)
 		
@@ -123,10 +170,26 @@ class RegionChunk:
 			region.imageFillRegion(color)
 	
 	
-	# outlierThresh: for each direction, if the bound of a iterated red region EXCEEDS the average by a certain amount, then it will NOT be considered as the new "farthest"
-	# label: color the region if it is red
-	# strictFilter: ONLY use the AVERAGE BOUNDS if True, use both average and PREVIOUS CONSECUTIVE REGION BOUNDS is False
 	def chunkRedDetectRegions(self, outlierThresh, filterBoundOutliers=True, strictFilter=False, label=False, verboseDebug=False): #boundCheckName
+		"""Returns a dict with a list of regions that detected as the background or "red" with additional information.
+		
+		A "bound" may include the "topmost" y-value, the "bottommost" y-value, the "leftmost" x-value, and the "rightmost" x-value.
+		
+		Furthermore, each directional bound (e.g. topmost) is NOT recorded as a tuple or coordinate pair, but as an integer.
+		
+		The "farthest bounds" are essentially the topmost, bottommost, leftmost, and rightmost pixels that contain
+		background/red Regions.
+		
+		Parameters:
+			outlierThresh:			For both the vertical and horizontal direction, if the x/y position of an iterated red Region
+									EXCEEDS the average directional bound values by the integer outlierThresh, then it
+									will NOT update the farthest bound (considered an "outlier").
+			filterBoundOutliers:	If True, then the function will attempt to filter out and not include outlier Regions.
+			strictFilter:			If True, then the function will filter outliers with the average bound values.
+									If False, then it will use both the average and the bounds of the previous consecutive Region.
+			label:					If True, MODIFY The image by coloring in all regions that were considered as red.
+			verboseDebug:			If True, print debug info.
+		"""
 		
 		regionRedDetect = []
 		
@@ -142,7 +205,6 @@ class RegionChunk:
 		
 		# use the FIRST REGION in the LIST OF "RED" REGIONS (RECOMMENDED)
 		regionFirst = regionRedDetect[0]
-		
 		
 		regionFirstBounds = regionFirst.pixBounds
 		
@@ -239,7 +301,6 @@ class RegionChunk:
 			'boundSum' : boundSum,
 			'boundAverage' : boundAverage
 		}
-				
 	
 	
 	def __init__(self, imageObject, imageLoaded):
@@ -247,7 +308,13 @@ class RegionChunk:
 		self.imageLoaded = imageLoaded
 		self.regionList = []
 
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
 
+
+
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# >>> >>> >>> CLASS: REGION <<< <<< <<<
 
 class Region:
 
@@ -260,8 +327,10 @@ class Region:
 		centerX = self.pixLocation[0]
 		centerY = self.pixLocation[1]
 		
-		# should I have a +1 to the right-hand bound of the horizontal and vertical range??
-		# the +1 results in an index bound error when in an image with a resolution INDENTICAL to the region size
+		# POSSIBLE BUG: should +1 be added to right-hand bound of the horizontal and vertical range?
+		# The +1 results in an index out-of-bounds error when in an image with a resoltuion IDENTICAL to the region size.
+		# However, the +1 produces the correct (or at least expected) number of items in the pixelList.
+		
 		for x in range(centerX - self.pixRadius, centerX + self.pixRadius):
 			for y in range(centerY - self.pixRadius, centerY + self.pixRadius):
 				self.imageLoaded[x, y] = color
@@ -276,9 +345,7 @@ class Region:
 		if self.pixRadius == 0:
 			pixelList.append(self.imageLoaded[centerX, centerY])
 		else:
-			# should I have a +1 to the right-hand bound of the horizontal and vertical range??
-			# the +1 results in an index bound error when in an image with a resolution INDENTICAL to the region size
-			# YET, the +1 produces the correct (or at least expected) number of items in the pixelList
+			# POSSIBLE BUG (REPEAT): should +1 be added to right-hand bound of the horizontal and vertical range?
 			for x in range(centerX - self.pixRadius, centerX + self.pixRadius):
 				for y in range(centerY - self.pixRadius, centerY + self.pixRadius):
 					pixelList.append(self.imageLoaded[x, y])
@@ -287,9 +354,11 @@ class Region:
 	
 
 	def getRegionPixelAverage(self):
+		# sum of all the individual color values (RGB)
 		redSum = 0
 		greenSum = 0
 		blueSum = 0
+		
 		pixelList = self.getRegionPixelList()
 		pixelCount = len(pixelList)
 		
@@ -302,9 +371,16 @@ class Region:
 
 
 	def __init__(self, imageObject, imageLoaded, pixLocation, pixRadius=1):
+		# PIL object of image with Image.open()
 		self.imageObject = imageObject
+		
+		# PIL object of image with load()
 		self.imageLoaded = imageLoaded
-		self.pixLocation = pixLocation # the center of the region
+		
+		# 2D tuple integer location of the center of the region
+		self.pixLocation = pixLocation
+		
+		# integer radius of the region in pixels
 		self.pixRadius = pixRadius
 		
 		# the topmost, bottommost, leftmost, and rightmost x/y values
@@ -315,12 +391,21 @@ class Region:
 			'right':(pixLocation[0] + pixRadius)
 		}
 
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+
+
+
+# ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
+# >>> >>> >>> CLASS: CROPPER <<< <<< <<<
 
 class Cropper:
 	
-	# a method that is not SPECIFICALLY meant for the yearbook images (more generic)
-	# "box" is a tuple: (left, upper, right, lower) pixel coordinate
 	def chunkSetup(self, outerBox, innerBox, regionRadius):
+		"""Sets up the topmost, bottommost, leftmost, and rightmost chunks around the book based on an inner and outer box.
+		
+		The boxes are a 4D integer tuple indicating horizontal and vertical pixel coordinates: (left, upper, right, lower).
+		"""
 		self.chunkDict['top'].chunkDefinePackAuto((innerBox[0], outerBox[1]), (innerBox[2], innerBox[1]), regionRadius)
 		self.chunkDict['bottom'].chunkDefinePackAuto((innerBox[0], innerBox[3]), (innerBox[2], outerBox[3]), regionRadius)
 		self.chunkDict['left'].chunkDefinePackAuto((outerBox[0], outerBox[1]), (innerBox[1], outerBox[3]), regionRadius)
@@ -337,6 +422,8 @@ class Cropper:
 	
 	
 	def chunkSetupTextbook(self, distanceUntilTripod, leftRightChunkWidth, topBottomChunkHeight, regionRadius):
+		"""Sets up the chunks based on the sample images in the repository."""
+		
 		imageWidth = self.imageObject.size[0]
 		imageHeight = self.imageObject.size[1]
 		
@@ -346,10 +433,14 @@ class Cropper:
 		self.chunkSetup(outerBox, innerBox, regionRadius)
 	
 	
-	# returns if the book is LEFT or RIGHT orientation
-	# CAN RETURN STRING: "left" "right" "both"
-	# SOMEWHAT REDUNDANT, MAY REMOVE LATER (effectively integrated this with the "crop" method)
 	def orientationDetect(self, outlierThresh, filterBoundOutliers=True, strictFilter=False):
+		"""Return the orientation of the book based on the amount of background/red detection on the left and right chunk.
+		
+		Return "right" if there are more red Regions in the right chunk than the left chunk.
+		Return "left" if there are more red Regions in the left chunk than the right chunk.
+		Return "both" if there are an equal number of red Regions in the left chunk and the right chunk..
+		"""
+		
 		# if chunks not set up yet
 		if(not self.chunkDict):
 			return None
@@ -366,10 +457,25 @@ class Cropper:
 			return "left"
 		else:
 			return "both"
-		
 	
-	# forceOrientation: you can have only EITHER left or right side of book cropped (NOT both left and right side)
+	
 	def crop(self, cropMarginPixel, outlierThresh, filterBoundOutliers=True, strictFilter=False, forceOrientation=False, debug=False):
+		"""Detects the background/red Regions in all four chunks and returns a new image object with the background cropped out.
+		
+		More specifically, it determines the "bounds" (bottommost, topmost, leftmost, and rightmost pixels) of the
+		book or subject itself that EXCLUDE the background/red Regions and crops the image to be fit within those bounds.
+		
+		Parameters:
+			(many parameters borrowed from RegionChunk chunkRedDetectRegions)
+			cropMarginPixel:	The amount of pixels that extends past the crop bounds (e.g. if it is 10, then extend
+								10 pixels above the topmost crop bound, 10 pixels below the bottommost crop bound, etc.).
+								Used to make the cropping less "greedy" and likely to crop away actual book/subject content.
+			forceOrientation:	If True, then the cropping system will crop only EITHER the left or right side of the
+								book/subjet, not both; if False, then both the left and right side will be considered and cropped.
+								It is useful to set this to True for very large books/subjects where only either the left
+								or right side is visible in the picture frame.
+		"""
+		
 		# if chunks not set up yet
 		if(not self.chunkDict):
 			return None

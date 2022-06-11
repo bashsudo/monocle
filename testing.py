@@ -1,3 +1,8 @@
+# Project Monocle: Automated Image Cropping for Books and Textbooks
+# testing.py: External Functions that Test Classes and Functions in primary.py
+
+# Eiza Stanford "charkybarky" 2022
+
 from primary import *
 from PIL import Image
 
