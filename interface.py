@@ -47,7 +47,7 @@ def commandParse():
 	groupImage.add_argument('-s', '--suffix', type=str, metavar='suffix', nargs='?', default=defaultImageSuffix, help=helpMsgCycle())
 	
 	groupChunk = parser.add_argument_group('chunk management')
-	groupChunk.add_argument('-r', '--radius', metavar='pixels', nargs=1, type=int, default=defaultRadius, help=helpMsgCycle())
+	groupChunk.add_argument('-r', '--radius', metavar='pixels', nargs='?', type=int, default=defaultRadius, help=helpMsgCycle())
 	
 	groupChunkBox = parser.add_argument_group('chunk management: box approach')
 	groupChunkBox.add_argument('-o', '--outer-box', metavar=('left', 'upper', 'right', 'lower'), nargs=4, type=int, help=helpMsgCycle())
@@ -58,16 +58,16 @@ def commandParse():
 	
 	groupOutlier = parser.add_argument_group('outlier filtering')
 	groupOutlier.add_argument('-f', '--filter-enable', action='store_true', help=helpMsgCycle())
-	groupOutlier.add_argument('-t', '--threshold', metavar='pixels', nargs=1, type=int, default=defaultOutlierThreshold, help=helpMsgCycle())
+	groupOutlier.add_argument('-t', '--threshold', metavar='pixels', nargs='?', type=int, default=defaultOutlierThreshold, help=helpMsgCycle())
 	groupOutlier.add_argument('-S', '--strict', action='store_true', help=helpMsgCycle())
 	
 	groupMisc = parser.add_argument_group('miscellaneous crop options')
 	groupMisc.add_argument('-O', '--force-orientation', action='store_true', help=helpMsgCycle())
-	groupMisc.add_argument('-m', '--crop-margin', metavar='pixels', nargs=1, type=int, default=defaultCropMargin, help=helpMsgCycle())
+	groupMisc.add_argument('-m', '--crop-margin', metavar='pixels', nargs='?', type=int, default=defaultCropMargin, help=helpMsgCycle())
 	
 	groupDebug = parser.add_argument_group('debugging')
 	groupDebug.add_argument('-x', '--debug-chunk-fill', action='store_true', help=helpMsgCycle())
-	#groupDebug.add_argument('-y', '--debug-background-fill', action='store_true', help=helpMsgCycle())
+	groupDebug.add_argument('-y', '--debug-background-fill', action='store_true', help=helpMsgCycle())
 	
 	args = parser.parse_args()
 	#args = parser.parse_args(input('> ').split())
@@ -75,6 +75,12 @@ def commandParse():
 	print(args)
 	
 	# box (left, upper, right, lower)
+	
+	if not args.filter_enable and (args.threshold != defaultOutlierThreshold or args.strict):
+		parser.error('in order to change the behavior of the outlier filtering, the filter must first be enabled (-f or --filter-enable)')
+	
+	if args.debug_chunk_fill and args.debug_background_fill:
+		parser.error('only one debug option can be used at a time')
 	
 	if not (args.book or args.outer_box or args.inner_box):
 		parser.error('at least one of the following arguments is needed: --outer-box, --inner-box, or --book')
@@ -118,6 +124,10 @@ def commandParse():
 			
 			if args.debug_chunk_fill:
 				cropper.chunkFillColor()
+				imageFinal = imageObject
+				
+			elif args.debug_background_fill:
+				cropper.chunkFillRedDetect(args.threshold, args.filter_enable, args.strict, args.force_orientation)
 				imageFinal = imageObject
 				
 			else:

@@ -420,6 +420,11 @@ class Cropper:
 			
 			colorIndex = (colorIndex + 1) % len(self.fillColorSamples)
 	
+	def chunkFillRedDetect(self, outlierThresh, filterBoundOutliers=True, strictFilter=False, forceOrientation=False):
+		for side in self.chunkSides:
+			chunk = self.chunkDict[side]
+			chunk.chunkRedDetectRegions(outlierThresh, filterBoundOutliers, strictFilter, True, False)
+	
 	
 	def chunkSetupTextbook(self, distanceUntilTripod, leftRightChunkWidth, topBottomChunkHeight, regionRadius):
 		"""Sets up the chunks based on the sample images in the repository."""
