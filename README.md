@@ -43,7 +43,9 @@ A command-line tool written in Python for automatically cropping images (with an
 ## Installation and Use
 Clone the repository somewhere on your computer and execute either primary.py or interface.py to crop images with specific arguments and options in a Linux-like fashion.
 
-## Example Commands
+## Tutorial and Examples
+**(There will be many more examples provided in the future!)**
+
 Each command is exhaustively explained in the help menu. The help can be accessed by running:
 ```
 interface.py -h
@@ -52,6 +54,10 @@ interface.py -h
 
 ### Cropping with "Book" Chunks
 **This defines the top, bottom, left, and right chunks with parameters that are optimized and meant for the yearbook sample images in the repository.**
+
+```
+python3 interface.py -B 2850 300 400 sample/yearbook/left_2.jpg
+```
 
 <table>
 </thead>
@@ -65,11 +71,15 @@ interface.py -h
 			<img src="./.github_readme/yearbook_left_2_cropped.jpg" width="128"><br />
 		</td>
 	</tr>
+	<tr>
+		<td>
+			Original Image
+		</td>
+		<td>
+			Cropped Image
+		</td>
+	</tr>
 </table>
-
-```
-python3 interface.py -B 2850 300 400 sample/yearbook/left_2.jpg
-```
 
 **(To show the cropping process in action)**
 <table>
@@ -95,14 +105,65 @@ python3 interface.py -B 2850 300 400 sample/yearbook/left_2.jpg
 		<td>
 			python3 interface.py -y -B 2850 300 400 sample/yearbook/left_2.jpg
 		</td>
+	</tr>
 </table>
 
-#### Cropping with "Box" Chunks
+### Cropping with "Box" Chunks
 **This defines the top, bottom, left, and right chunks in a way that is more generic and RECOMMENDED for most situations. An imaginary "inner" and "outer" box is used: the chunks fit in the gap between the boundaries of the "outer" and "inner" box.**
 
 ```
-python3 interface.py -o sample/yearbook/left_2.jpg
+python3 interface.py -o 0 0 2200 2800 -i 300 300 1800 2500 sample/yearbook/left_2.jpg
 ```
+
+<table>
+</thead>
+<tbody>
+</tbody>
+	<tr>
+		<td>
+			<img src="./sample/yearbook/left_2.jpg" width="128"><br />
+		</td>
+		<td>
+			<img src="./.github_readme/yearbook_left_2_box_cropped.jpg" width="128"><br />
+		</td>
+	</tr>
+	<tr>
+		<td>
+			Original Image
+		</td>
+		<td>
+			Cropped Image
+		</td>
+	</tr>
+</table>
+
+**(To show the cropping process in action)**
+<table>
+</thead>
+<tbody>
+</tbody>
+	<tr>
+		<td>
+			<img src="./.github_readme/yearbook_left_2_box_x_option.jpg" width="128"><br />
+			Chunks Colored In
+			(Debug Flag Used)
+		</td>
+		<td>
+			<img src="./.github_readme/yearbook_left_2_box_y_option.jpg" width="128"><br />
+			Background Detection in Chunks
+			(Debug Flag Used)
+		</td>
+	</tr>
+	<tr>
+		<td>
+			python3 interface.py -x -B 2850 300 400 sample/yearbook/left_2.jpg
+		</td>
+		<td>
+			python3 interface.py -y -B 2850 300 400 sample/yearbook/left_2.jpg
+		</td>
+	</tr>
+</table>
+
 
 ## How does it work?
 
