@@ -572,8 +572,9 @@ class Cropper:
 				for blue in range(0, 2):
 					self.fillColorSamples.append((red * 255, green * 255, blue * 255))
 		
-		del self.fillColorSamples[0]
-		del self.fillColorSamples[6]
+		del self.fillColorSamples[0] # delete black
+		del self.fillColorSamples[6] # delete white
+		del self.fillColorSamples[3] # delete red
 		
 		self.chunkSides = [
 			'top',
