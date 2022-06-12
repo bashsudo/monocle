@@ -156,10 +156,10 @@ python3 interface.py -o 0 0 2200 2800 -i 300 300 1800 2500 sample/yearbook/left_
 	</tr>
 	<tr>
 		<td>
-			python3 interface.py -x -B 2850 300 400 sample/yearbook/left_2.jpg
+			python3 interface.py -x -o 0 0 2200 2800 -i 300 300 1800 2500 sample/yearbook/left_2.jpg
 		</td>
 		<td>
-			python3 interface.py -y -B 2850 300 400 sample/yearbook/left_2.jpg
+			python3 interface.py -y -o 0 0 2200 2800 -i 300 300 1800 2500 sample/yearbook/left_2.jpg
 		</td>
 	</tr>
 </table>
