@@ -7,6 +7,7 @@
 # >>> >>> >>> IMPORTS AND MODULES <<< <<< <<<
 from PIL import Image
 import time
+import interface
 
 # ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
 # ===== ===== ===== ===== ===== ===== ===== ===== ===== =====
@@ -588,3 +589,8 @@ class Cropper:
 		
 		for side in self.chunkSides:
 			self.chunkDict[side] = RegionChunk(imageObject, imageLoaded)
+
+
+
+if __name__ == '__main__':
+	interface.main()
