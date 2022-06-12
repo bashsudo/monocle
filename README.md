@@ -1,7 +1,7 @@
 # monocle
 A command-line tool written in Python for automatically cropping images (with an emphasis for books).
 
-<table class="is-fullwidth">
+<table>
 </thead>
 <tbody>
 </tbody>
@@ -53,7 +53,7 @@ interface.py -h
 ### Cropping with "Book" Chunks
 **This defines the top, bottom, left, and right chunks with parameters that are optimized and meant for the yearbook sample images in the repository.**
 
-<table class="is-fullwidth">
+<table>
 </thead>
 <tbody>
 </tbody>
@@ -72,7 +72,7 @@ python3 interface.py -B 2850 300 400 sample/yearbook/left_2.jpg
 ```
 
 **(To show the cropping process in action)**
-<table class="is-fullwidth">
+<table>
 </thead>
 <tbody>
 </tbody>
@@ -137,9 +137,11 @@ The program crops the image to the image's subject (main object of attention) by
 	* The right side of the image will be cropped the the LEFTMOST red/background region in the right chunk.
 
 ### Details: Color Detection and "Outliers"
+
 (to complete later)
 
 **(DISCLAIMER: as of now, the outlier system seems to fail to detect outliers; this will be investigated.)**
 
 ### Details: Orientation and Crop Margin
+
 (to complete later)
