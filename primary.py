@@ -408,7 +408,7 @@ class Cropper:
 		"""
 		self.chunkDict['top'].chunkDefinePackAuto((innerBox[0], outerBox[1]), (innerBox[2], innerBox[1]), regionRadius)
 		self.chunkDict['bottom'].chunkDefinePackAuto((innerBox[0], innerBox[3]), (innerBox[2], outerBox[3]), regionRadius)
-		self.chunkDict['left'].chunkDefinePackAuto((outerBox[0], outerBox[1]), (innerBox[1], outerBox[3]), regionRadius)
+		self.chunkDict['left'].chunkDefinePackAuto((outerBox[0], outerBox[1]), (innerBox[0], outerBox[3]), regionRadius)
 		self.chunkDict['right'].chunkDefinePackAuto((innerBox[2], outerBox[1]), (outerBox[2], outerBox[3]), regionRadius)
 	
 	
