@@ -9,7 +9,7 @@ from PIL import Image
 
 #fileName = 'sample/IMG_8222.jpg'
 #fileName = 'sample/IMG_8238.jpg'
-fileName = 'sample/right_2.jpg'
+fileName = 'sample/yearbook/right_2.jpg'
 
 myImage = Image.open(fileName)
 myImageLoad = myImage.load()
