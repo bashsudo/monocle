@@ -1,5 +1,4 @@
 # monocle
----
 A command-line tool written in Python for automatically cropping images (with an emphasis for books).
 
 <table class="is-fullwidth">
@@ -14,10 +13,12 @@ A command-line tool written in Python for automatically cropping images (with an
 		<td>
 			<img src="./.github_readme/nightingale_closeup_x_option.jpg" width="128"><br />
 			Chunks Colored In
+			(Debug Flag Used)
 		</td>
 		<td>
 			<img src="./.github_readme/nightingale_closeup_y_option.jpg" width="128"><br />
 			Background Detection in Chunks
+			(Debug Flag Used)
 		</td>
 		<td>
 			<img src="./.github_readme/nightingale_closeup_cropped.jpg" width="128"><br />
@@ -39,12 +40,74 @@ A command-line tool written in Python for automatically cropping images (with an
 		</td>
 </table>
 
-## How to use it (in a terminal)?
+## Installation and Use
+Clone the repository somewhere on your computer and execute either primary.py or interface.py to crop images with specific arguments and options in a Linux-like fashion.
+
+## Example Commands
+Each command is exhaustively explained in the help menu. The help can be accessed by running:
+```
+interface.py -h
+```
+(primary.py or --help will also be fine)
+
+### Cropping with "Book" Chunks
+**This defines the top, bottom, left, and right chunks with parameters that are optimized and meant for the yearbook sample images in the repository.**
+
+<table class="is-fullwidth">
+</thead>
+<tbody>
+</tbody>
+	<tr>
+		<td>
+			<img src="./sample/yearbook/left_2.jpg" width="128"><br />
+		</td>
+		<td>
+			<img src="./.github_readme/yearbook_left_2_cropped.jpg" width="128"><br />
+		</td>
+	</tr>
+</table>
+
+```
+python3 interface.py -B 2850 300 400 sample/yearbook/left_2.jpg
+```
+
+**(To show the cropping process in action)**
+<table class="is-fullwidth">
+</thead>
+<tbody>
+</tbody>
+	<tr>
+		<td>
+			<img src="./.github_readme/yearbook_left_2_x_option.jpg" width="128"><br />
+			Chunks Colored In
+			(Debug Flag Used)
+		</td>
+		<td>
+			<img src="./.github_readme/yearbook_left_2_y_option.jpg" width="128"><br />
+			Background Detection in Chunks
+			(Debug Flag Used)
+		</td>
+	</tr>
+	<tr>
+		<td>
+			python3 interface.py -x -B 2850 300 400 sample/yearbook/left_2.jpg
+		</td>
+		<td>
+			python3 interface.py -y -B 2850 300 400 sample/yearbook/left_2.jpg
+		</td>
+</table>
+
+#### Cropping with "Box" Chunks
+**This defines the top, bottom, left, and right chunks in a way that is more generic and RECOMMENDED for most situations. An imaginary "inner" and "outer" box is used: the chunks fit in the gap between the boundaries of the "outer" and "inner" box.**
+
+```
+python3 interface.py -o sample/yearbook/left_2.jpg
+```
 
 ## How does it work?
 
 ### Practical Summary
-The program crops the image to the image's subject (main object of attention) by looking for the color RED surrounding that subject. Objects called "chunks" are placed around where the subject generally is: a chunk is placed at the top, bottom, left, and right side of the subject. The program scans for the color red in these chunks, and crops the image. As of now, the color red is the ONLY color that can be used as the background (will be changed in the future).
+The program crops the image to the image's subject (main object of attention) by looking for the color RED surrounding that subject. Objects called "chunks" are placed around where the subject generally is: a chunk is placed at the top, bottom, left, and right side of the subject. The program scans for the color red in these chunks, and crops the image to only include the subject and not include the red/background color. As of now, the color red is the ONLY color that can be used as the background (will be changed in the future).
 
 ### The Basics
 * To explain how it works, let's begin with the program's purpose: the goal is to crop the image to the rectangular dimensions of the image's **subject** (the main object of attention, usually at the center) and exclude everything else.
@@ -74,8 +137,9 @@ The program crops the image to the image's subject (main object of attention) by
 	* The right side of the image will be cropped the the LEFTMOST red/background region in the right chunk.
 
 ### Details: Color Detection and "Outliers"
-
+(to complete later)
 
 **(DISCLAIMER: as of now, the outlier system seems to fail to detect outliers; this will be investigated.)**
 
 ### Details: Orientation and Crop Margin
+(to complete later)
