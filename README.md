@@ -7,21 +7,21 @@ A command-line tool written in Python for automatically cropping images (with an
 </tbody>
 	<tr>
 		<td>
-			<img src="./.github_readme/nightingale_closeup.jpg" width="128"><br />
+			<img src="./.github_readme/nightingale_closeup.jpg" width="128"/>
 			Original Image
 		</td>
 		<td>
-			<img src="./.github_readme/nightingale_closeup_x_option.jpg" width="128"><br />
+			<img src="./.github_readme/nightingale_closeup_x_option.jpg" width="128"/>
 			Chunks Colored In
 			(Debug Flag Used)
 		</td>
 		<td>
-			<img src="./.github_readme/nightingale_closeup_y_option.jpg" width="128"><br />
+			<img src="./.github_readme/nightingale_closeup_y_option.jpg" width="128"/>
 			Background Detection in Chunks
 			(Debug Flag Used)
 		</td>
 		<td>
-			<img src="./.github_readme/nightingale_closeup_cropped.jpg" width="128"><br />
+			<img src="./.github_readme/nightingale_closeup_cropped.jpg" width="128"/>
 			Cropped Image
 		</td>
 	</tr>
@@ -65,10 +65,10 @@ python3 interface.py -B 2850 300 400 sample/yearbook/left_2.jpg
 </tbody>
 	<tr>
 		<td>
-			<img src="./sample/yearbook/left_2.jpg" width="128"><br />
+			<img src="./sample/yearbook/left_2.jpg" width="128"/>
 		</td>
 		<td>
-			<img src="./.github_readme/yearbook_left_2_cropped.jpg" width="128"><br />
+			<img src="./.github_readme/yearbook_left_2_cropped.jpg" width="128"/>
 		</td>
 	</tr>
 	<tr>
@@ -88,12 +88,12 @@ python3 interface.py -B 2850 300 400 sample/yearbook/left_2.jpg
 </tbody>
 	<tr>
 		<td>
-			<img src="./.github_readme/yearbook_left_2_x_option.jpg" width="128"><br />
+			<img src="./.github_readme/yearbook_left_2_x_option.jpg" width="128"/>
 			Chunks Colored In
 			(Debug Flag Used)
 		</td>
 		<td>
-			<img src="./.github_readme/yearbook_left_2_y_option.jpg" width="128"><br />
+			<img src="./.github_readme/yearbook_left_2_y_option.jpg" width="128"/>
 			Background Detection in Chunks
 			(Debug Flag Used)
 		</td>
@@ -121,10 +121,10 @@ python3 interface.py -o 0 0 2200 2800 -i 300 300 1800 2500 sample/yearbook/left_
 </tbody>
 	<tr>
 		<td>
-			<img src="./sample/yearbook/left_2.jpg" width="128"><br />
+			<img src="./sample/yearbook/left_2.jpg" width="128"/>
 		</td>
 		<td>
-			<img src="./.github_readme/yearbook_left_2_box_cropped.jpg" width="128"><br />
+			<img src="./.github_readme/yearbook_left_2_box_cropped.jpg" width="128"/>
 		</td>
 	</tr>
 	<tr>
@@ -144,12 +144,12 @@ python3 interface.py -o 0 0 2200 2800 -i 300 300 1800 2500 sample/yearbook/left_
 </tbody>
 	<tr>
 		<td>
-			<img src="./.github_readme/yearbook_left_2_box_x_option.jpg" width="128"><br />
+			<img src="./.github_readme/yearbook_left_2_box_x_option.jpg" width="128"/>
 			Chunks Colored In
 			(Debug Flag Used)
 		</td>
 		<td>
-			<img src="./.github_readme/yearbook_left_2_box_y_option.jpg" width="128"><br />
+			<img src="./.github_readme/yearbook_left_2_box_y_option.jpg" width="128"/>
 			Background Detection in Chunks
 			(Debug Flag Used)
 		</td>
@@ -165,7 +165,7 @@ python3 interface.py -o 0 0 2200 2800 -i 300 300 1800 2500 sample/yearbook/left_
 </table>
 
 
-## How does it work?
+## How Does It Work?
 
 ### Practical Summary
 The program crops the image to the image's subject (main object of attention) by looking for the color RED surrounding that subject. Objects called "chunks" are placed around where the subject generally is: a chunk is placed at the top, bottom, left, and right side of the subject. The program scans for the color red in these chunks, and crops the image to only include the subject and not include the red/background color. As of now, the color red is the ONLY color that can be used as the background (will be changed in the future).
